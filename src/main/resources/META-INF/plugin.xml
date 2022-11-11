@@ -24,6 +24,31 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-
+        <!-- 声明应用级服务 -->
+        <applicationService serviceInterface="jb.plugin.autojs.AutoJsServer"
+                            serviceImplementation="jb.plugin.autojs.AutoJsServerImpl"/>
+        <!--   声明通知     -->
+        <notificationGroup id="AutoJs Plugin" displayType="BALLOON" isLogByDefault="true"/>
     </extensions>
+    <!--  监听idea关闭-->
+    <applicationListeners>
+        <listener class="jb.plugin.autojs.AutoJsServerImpl"
+                  topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+    <actions>
+        <action id="StartAllServer" class="jb.plugin.autojs.StartAllAction" text="开启服务并监听ADB设备"
+                description="启动一个服务,用于手机端的autojs软件连接到ide,用于便捷开发">
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+            <add-to-group group-id="NavBarToolBar" anchor="first"/>
+        </action>
+        <action id="ShowQrCode" class="jb.plugin.autojs.ShowQrCodeAction" text="显示二维码"
+                description="展示服务启动的二维码给手机端autojs连接使用">
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+        </action>
+        <action id="RightKey" class="jb.plugin.autojs.RightKey" text="同步代码到手机Auto.js App"
+                icon="/icons/logo3.png"
+                description="同步代码到手机Auto.js App">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="WeighingNewGroup"/>
+        </action>
+    </actions>
 </idea-plugin>

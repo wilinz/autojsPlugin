@@ -2,19 +2,35 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.6.20"
     id("org.jetbrains.intellij") version "1.8.1"
+    kotlin("plugin.serialization") version "1.6.20"
+//    id("io.ktor.plugin") version "2.1.2"
 }
 
 group = "jb.plugin"
-version = "1.0-SNAPSHOT"
+//跟vs code的插件版本号对齐
+version = "1.109.2"
+
 
 repositories {
     maven { setUrl("https://maven.aliyun.com/repository/public") }
     mavenCentral()
 }
 
+dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+
+    implementation("io.ktor:ktor-server-core-jvm:2.1.2")
+    implementation("io.ktor:ktor-server-websockets-jvm:2.1.2")
+    implementation("io.ktor:ktor-server-netty-jvm:2.1.2")
+    implementation("ch.qos.logback:logback-classic:1.2.11")
+}
+
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
+    pluginName.set("AutoJsPlugin")
+
+    //-----------------------------
     version.set("2021.3")
     type.set("IC") // Target IDE Platform
 
@@ -32,6 +48,7 @@ tasks {
     }
 
     patchPluginXml {
+        version.set("${project.version}")
         sinceBuild.set("213")
         untilBuild.set("223.*")
     }
