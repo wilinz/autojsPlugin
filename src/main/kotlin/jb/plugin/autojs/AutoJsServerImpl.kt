@@ -8,7 +8,6 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.impl.coroutineDispatchingContext
 import com.intellij.openapi.components.*
 import com.intellij.openapi.extensions.PluginId
-import com.intellij.util.ui.UI
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -17,7 +16,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import jb.plugin.autojs.ui.Hint
 import jb.plugin.autojs.ui.Toast
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
@@ -86,6 +84,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                 "提示",
                 "启动服务 http://$host:$port"
             )
+
         } catch (e: Exception) {
             this.server?.environment?.monitor?.unsubscribe(ApplicationStarted, this::switchStatusStart)
             this.server?.environment?.monitor?.unsubscribe(ApplicationStopped, this::switchStatusStop)
@@ -110,12 +109,14 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
     private fun switchStatusStop(ApplicationStopped: Application) {
         this.isHttpServerRunning = false
 //        println("变更程序状态" + this.isHttpServerRunning)
+        updateIcon()
     }
 
     @Suppress("UNUSED_PARAMETER")
     private fun switchStatusStart(ApplicationStopped: Application) {
         this.isHttpServerRunning = true
 //        println("变更程序状态" + this.isHttpServerRunning)
+        updateIcon()
     }
 
 
@@ -177,7 +178,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                                 hello.data.ip = ip
                                 device = Device(outgoing, hello.data)
                                 this@AutoJsServerImpl.devices += device
-                                var rspText = ""
+                                var rspText: String
                                 if (hello.data.appVersionCode >= 629) {
                                     rspText = Json.encodeToString(
                                         LinkRspUp629(
@@ -228,6 +229,13 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
 
             }
         }
+    }
+
+    //修改导航栏上的autojs图标
+    private fun updateIcon() {
+        val actionManager = ActionManager.getInstance()
+        val action = actionManager.getAction(ShowAllAction.ACTION_ID) as? ShowAllAction ?: return
+        action.updateIcon(this.isRunning())
     }
 
     override fun appClosing() {//这个在appWillBeClosed之前执行
