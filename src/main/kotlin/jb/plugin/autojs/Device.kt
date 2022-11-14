@@ -1,17 +1,20 @@
 package jb.plugin.autojs
 
+import com.intellij.openapi.util.NlsSafe
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicInteger
 
 
-class Device(// 输出通道
+class Device(
+// 输出通道
     private val outgoing: SendChannel<Frame>,// 设备信息
-    var info: LinkData
+    var info: LinkData,
 ) {
     var type = "" // 设备类型
     var id = 0 // 设备id
@@ -40,6 +43,7 @@ class Device(// 输出通道
     fun close4Java(): Unit = runBlocking {// invoke suspend fun
         close()
     }
+
 
     suspend fun send(type: String, data: Any) {
         val messageId = Utils.genMessageId()
@@ -73,8 +77,7 @@ class Device(// 输出通道
         this.outgoing.send(Frame.Text(message))
     }
 
-    suspend fun sendCommand(command: String, data: Temp) {
-        data.command = command
+    suspend fun sendCommand(data: ICommand) {
         this.send("command", data)
     }
 
@@ -109,5 +112,48 @@ class Device(// 输出通道
                 this.print("未知消息类型 ->$type-$text")
             }
         }
+    }
+
+    //向autojs App发送压缩好的项目文件
+    suspend fun sendProject6Zip(byteStream: ByteArrayOutputStream, id: @NlsSafe String, name: @NlsSafe String) {
+        val bs = byteStream.toByteArray()
+        val md5 = Utils.computeMd5(bs)
+        println("MD5:${md5}")
+        this.sendBytes(bs)
+        this.sendBytesCommand(
+            "save_project",
+            md5,
+            CommandData(
+                id,
+                name,
+            )
+        )
+    }
+
+    //向autojs App发送指令,停止所有脚本
+    //    stopAll() {
+    //        server.sendCommand('stopAll');
+    //    }
+    suspend fun stopAllScript() {
+        val messageId = Utils.genMessageId()
+        val message = Json.encodeToString(MessageData(messageId, "command", StopAllReq("stopAll")))
+        this.outgoing.send(Frame.Text(message))
+//        this.send("command",StopAllReq("stopAll"))//无法使用,因为Any抹掉了类型,会报错kotlinx.serialization.SerializationException: Serializer for class 'Any' is not found.
+    }
+
+    fun stopAllScript4Java(): Unit = runBlocking {// invoke suspend fun
+        stopAllScript()
+    }
+
+    // 向autojs App发送指令,停止指定脚本
+    //        server.sendCommand('stop', {
+    //            'id': vscode.window.activeTextEditor.document.fileName,
+    //        });
+    suspend fun stopScript() {
+        this.sendCommand(StopReq("stop", ""))
+    }
+
+    fun stopScript4Java(): Unit = runBlocking {// invoke suspend fun
+        stopScript()
     }
 }

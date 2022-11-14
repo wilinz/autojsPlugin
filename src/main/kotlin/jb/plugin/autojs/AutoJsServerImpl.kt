@@ -3,11 +3,13 @@ package jb.plugin.autojs
 import com.intellij.ide.AppLifecycleListener
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.impl.ActionManagerImpl
 import com.intellij.openapi.application.AppUIExecutor
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.impl.coroutineDispatchingContext
 import com.intellij.openapi.components.*
 import com.intellij.openapi.extensions.PluginId
+import icons.AutoJsIcons
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -128,6 +130,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
     //连接设备发生变化,更新设备列表UI
     private fun devicesUpdateUI() {
         this.listener?.updateDeviceList(this.devices)
+        registerAction()
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -250,7 +253,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                     println("移除设备-> $device!")
                     if (device != null) {
                         this@AutoJsServerImpl.devices -= device
-                        devicesUpdateUI()
+                        GlobalScope.launch(uiDispatcher) { devicesUpdateUI() }
                     }
                 }
             }
@@ -304,5 +307,20 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
 
     override fun removeServerDialogListener() {
         this.listener = null
+    }
+
+    private val GROUP_ID = "RightKeyGroup"
+    private fun registerAction() {// 动态注册右键菜单
+        try {
+            val actionManager = ActionManager.getInstance() as ActionManagerImpl
+            val group = actionManager.getAction(GROUP_ID) as? DefaultActionGroup ?: return
+            group.removeAll() // 删除所有的AnAction
+            for (device in this.devices) {
+                val action = RightKeyBase(device)
+                group.addAction(action, Constraints.LAST)
+            }
+        } catch (e: Throwable) {
+            println("发生错误: $e")
+        }
     }
 }

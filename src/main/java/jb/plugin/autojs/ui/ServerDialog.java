@@ -69,82 +69,26 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
     public void updateDeviceList(Set<Device> devices) {
         System.out.println("连接设备成功");
 
-        String[] cNames = {"设备", "ip", "操作"};
-        Object[][] data = new Object[devices.size()][3];
+        String[] cNames = {"设备", "ip", "操作", "运行"};
+        Object[][] data = new Object[devices.size()][4];
         for (int i = 0; i < devices.size(); i++) {
             Device device = (Device) devices.toArray()[i];
             data[i][0] = device.getInfo().getDeviceName();
             data[i][1] = device.getInfo().getIp();
             data[i][2] = device.getId();
+            data[i][3] = device.getId();
         }
-//        data[devices.size()][0] = "iphone13";
-//        data[devices.size()][1] = "192.168.1.1";
-//        data[devices.size()][2] = 1;
-//
-//        data[devices.size() + 1][0] = "iphone14";
-//        data[devices.size() + 1][1] = "192.168.1.1";
-//        data[devices.size() + 1][2] = 2;
 
         JTable jt = new JTable(data, cNames);
         jt.setRowHeight(30);
         deviceScrollPanel.setViewportView(jt);
-//        jt.setModel(new DefaultTableModel() {
-//            @Override
-//            public Object getValueAt(int row, int column) {
-//                return data[row][column];
-////                return (row + 1) * (column + 1);
-//            }
-//
-//            @Override
-//            public int getRowCount() {
-//                return 3;
-//            }
-//
-//            @Override
-//            public int getColumnCount() {
-//                return 3;
-//            }
-//
-//            @Override
-//            public void setValueAt(Object aValue, int row, int column) {
-//                System.out.println(aValue + "  setValueAt");
-//            }
-//
-//            @Override
-//            public boolean isCellEditable(int row, int column) {
-//                // 带有按钮列的功能这里必须要返回true不然按钮点击时不会触发编辑效果，也就不会触发事件。
-//                if (column == 2) {
-//                    return true;
-//                } else {
-//                    return false;
-//                }
-//            }
-//        });
-        jt.getColumnModel().getColumn(2).setCellEditor(new MyButtonEditor());
-        jt.getColumnModel().getColumn(2).setCellRenderer(new MyButtonRender());
+        jt.getColumnModel().getColumn(2).setCellEditor(new MyButtonEditor(Action.DISCONNECT));
+        jt.getColumnModel().getColumn(2).setCellRenderer(new MyButtonRender("断开"));
+        jt.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(Action.STOP_SCRIPT));
+        jt.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender("停止脚本"));
         jt.setRowSelectionAllowed(false);// 禁止表格的选择功能。不然在点击按钮时表格的整行都会被选中。也可以通过其它方式来实现。
     }
 
-    //        table1.removeAll();
-//    Vector vData = new Vector();
-//    Vector vName = new Vector();
-//        vName.add("column1");
-//        vName.add("column2");
-//    Vector vRow = new Vector();
-//        vRow.add("cell 0 0");
-//        vRow.add("cell 0 1");
-//        vData.add(vRow.clone());
-//        vData.add(vRow.clone());
-//    DefaultTableModel model = new DefaultTableModel(vData, vName);
-//        table1.setModel(model);
-//        table1.setRowSelectionAllowed(false);
-//    //        table1.setCellSelectionEnabled(false);
-////        table1.setEnabled(false);
-//    TableColumn tableColumn1 = new TableColumn(0, 100);
-//        tableColumn1.setHeaderValue("操作");
-//        table1.addColumn(tableColumn1);
-//        table1.getColumnModel().getColumn(2).setCellRenderer(new MyButtonRender());
-//        table1.getColumnModel().getColumn(2).setCellEditor(new MyButtonEditor());
     @Override
     public void windowOpened(WindowEvent e) {
         System.out.println("windowOpened");
@@ -191,7 +135,10 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
 
         private JButton button;
 
-        public MyButtonRender() {
+        private String text;
+
+        public MyButtonRender(String text) {
+            this.text = text;
             this.initButton();
 
             this.initPanel();
@@ -205,17 +152,6 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
 
             // 设置按钮的大小及位置。
             this.button.setBounds(0, 0, 60, 25);
-
-            // 在渲染器里边添加按钮的事件是不会触发的
-            // this.button.addActionListener(new ActionListener()
-            // {
-            //
-            // public void actionPerformed(ActionEvent e)
-            // {
-            // // TODO Auto-generated method stub
-            // }
-            // });
-
         }
 
         private void initPanel() {
@@ -229,12 +165,16 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
                                                        int column) {
             // 只为按钮赋值即可。也可以作其它操作，如绘背景等。
 //            this.button.setText(value == null ? "" : String.valueOf(value));
-            this.button.setText("断开");
+            this.button.setText(this.text);
             return this.panel;
         }
 
     }
 
+    enum Action {
+        DISCONNECT, // 断开连接
+        STOP_SCRIPT //停止脚本
+    }
 
     public class MyButtonEditor extends DefaultCellEditor {
 
@@ -247,10 +187,12 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
 
         private JButton button;
 
-        public MyButtonEditor() {
-            // DefautlCellEditor有此构造器，需要传入一个，但这个不会使用到，直接new一个即可。
-            super(new JTextField());
+        private final Action action;
 
+        public MyButtonEditor(Action action) {
+            // DefaultCellEditor有此构造器，需要传入一个，但这个不会使用到，直接new一个即可。
+            super(new JTextField());
+            this.action = action;
             // 设置点击几次激活编辑。
             this.setClickCountToStart(1);
 
@@ -268,7 +210,7 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
             // 设置按钮的大小及位置。
             this.button.setBounds(0, 0, 60, 25);
 
-            // 为按钮添加事件。这里只能添加ActionListner事件，Mouse事件无效。
+            // 为按钮添加事件。这里只能添加ActionListener事件，Mouse事件无效。
             this.button.addActionListener(e -> {
                 try {
                     int i = Integer.parseInt(e.getActionCommand());
@@ -276,12 +218,19 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
                     if (device == null) {
                         System.out.println("设备不存在" + i);
                     } else {
-                        device.close4Java();
+                        switch (action) {
+                            case DISCONNECT:
+                                device.close4Java();
+                                break;
+                            case STOP_SCRIPT:
+                                device.stopAllScript4Java();
+                                break;
+                        }
+
                     }
                 } catch (Exception e1) {
                     System.out.println("数据转换出错e1 = " + e1);
                 }
-
 
                 System.out.println("点击了按钮" + e.getActionCommand());
                 System.out.println(button.getText());

@@ -34,9 +34,21 @@ data class LogData(
     val log: String,
 )
 
-interface Temp {
+interface ICommand {
     var command: String
 }
+
+@Serializable
+data class StopReq(
+    override var command: String,
+    val id: String,
+) : ICommand
+
+@Serializable
+data class StopAllReq(
+    @SerialName("command")
+    override var command: String,
+) : ICommand
 
 @Serializable
 data class Req<T>(

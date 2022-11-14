@@ -42,18 +42,20 @@
                 text="查看AutoJs服务状态和连接设备"
                 description="启动一个服务,用于手机端的autojs软件连接到ide,用于便捷开发">
             <!--     将action展示在菜单栏的工具子菜单中       -->
-<!--            <add-to-group group-id="ToolsMenu" anchor="first"/>-->
+            <!--            <add-to-group group-id="ToolsMenu" anchor="first"/>-->
             <!--      将action展示在工具栏中      -->
             <add-to-group group-id="NavBarToolBar" relative-to-action="RunAnything" anchor="before"/>
         </action>
-        <action id="ShowQrCode" class="jb.plugin.autojs.ShowQrCodeAction" text="显示二维码"
-                description="展示服务启动的二维码给手机端autojs连接使用">
-            <add-to-group group-id="ToolsMenu" anchor="first"/>
-        </action>
-        <action id="RightKey" class="jb.plugin.autojs.RightKey" text="同步代码到手机Auto.js App"
-                icon="/icons/autojs.svg"
-                description="同步代码到手机Auto.js App">
+<!--        <action id="$RightKey" class="jb.plugin.autojs.RightKey" text="同步代码到手机Auto.js App"-->
+<!--                icon="/icons/autojs.svg"-->
+<!--                description="同步代码到手机Auto.js App">-->
+<!--            <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="WeighingNewGroup"/>-->
+<!--        </action>-->
+        <group id="RightKeyGroup" text="同步代码到手机">
+            <separator/>
+            <separator/>
+            <!--suppress PluginXmlValidity -->
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="WeighingNewGroup"/>
-        </action>
+        </group>
     </actions>
 </idea-plugin>
