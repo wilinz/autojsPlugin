@@ -2,30 +2,30 @@ package jb.plugin.autojs
 
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicInteger
 
 
-class Device {
+class Device(// 输出通道
+    private val outgoing: SendChannel<Frame>,// 设备信息
+    var info: LinkData
+) {
     var type = "" // 设备类型
     var id = 0 // 设备id
-    var info: LinkData // 设备信息
 
     //    var mWebsocket: ServerSocket? = null // websocket
     var attached = false // 是否已经连接,@deprecated 理论上Device对象创建后就已经连接了
-    private val outgoing: SendChannel<Frame> // 输出通道
-//    private val incoming: ReceiveChannel<Frame> // 输入通道
+    //    private val incoming: ReceiveChannel<Frame> // 输入通道
 
     companion object {
         val lastId = AtomicInteger(0)
     }
 
-    constructor(outgoing: SendChannel<Frame>, info: LinkData) {
-        this.outgoing = outgoing
+    init {
         this.id = lastId.getAndIncrement()
-        this.info = info
     }
 
     //向autojs App发送关闭连接的信号
@@ -34,6 +34,11 @@ class Device {
         val closeMessage = Json.encodeToString(MessageData(messageId, "close", "close"))
         outgoing.send(Frame.Text(closeMessage))
         outgoing.close()
+    }
+    // 提供给 Java 使用的封装函数，Java 代码可以直接使用
+
+    fun close4Java(): Unit = runBlocking {// invoke suspend fun
+        close()
     }
 
     suspend fun send(type: String, data: Any) {

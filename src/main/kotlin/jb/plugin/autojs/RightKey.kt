@@ -7,7 +7,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.vfs.VfsUtilCore
 import jb.plugin.autojs.Utils.Companion.computeMd5
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.apache.commons.lang3.StringUtils
@@ -40,7 +39,7 @@ class RightKey : AnAction() {
             val byteArr = virtualFile.contentsToByteArray()
             val zipName =
                 StringUtils.substringAfter(virtualFile.path, parentFile.path + "/")//压缩文件命名 (例dist\xx\yy\zz.txt)
-            println("zipName $zipName")
+//            println("zipName $zipName")
             outputStream.putNextEntry(ZipEntry(zipName))//思就是我下面io操作(写入)都是在z这个文件条目下进行的。
             outputStream.write(byteArr)
             outputStream.closeEntry() //代表要结束当前条目的写入

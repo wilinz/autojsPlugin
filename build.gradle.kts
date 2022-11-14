@@ -1,8 +1,8 @@
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.6.20"
-    id("org.jetbrains.intellij") version "1.8.1"
-    kotlin("plugin.serialization") version "1.6.20"
+    id("org.jetbrains.kotlin.jvm") version "1.7.20"
+    id("org.jetbrains.intellij") version "1.9.0"
+    kotlin("plugin.serialization") version "1.7.20"
 //    id("io.ktor.plugin") version "2.1.2"
 }
 
@@ -23,6 +23,10 @@ dependencies {
     implementation("io.ktor:ktor-server-websockets-jvm:2.1.2")
     implementation("io.ktor:ktor-server-netty-jvm:2.1.2")
     implementation("ch.qos.logback:logback-classic:1.2.11")
+
+    implementation("com.google.zxing:core:3.4.1")
+    implementation("cn.hutool:hutool-all:5.8.9")
+
 }
 
 // Configure Gradle IntelliJ Plugin

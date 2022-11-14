@@ -16,6 +16,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import jb.plugin.autojs.ui.ServerDialogListener
 import jb.plugin.autojs.ui.Toast
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
@@ -31,7 +32,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
     //http服务是否已启动
     private var isHttpServerRunning = false
     private var host: String? = null
-    private var port = 9317 //端口号
+    private val PORT = 9317 //端口号
     private var server: NettyApplicationEngine? = null
 
     //    private val devices = mutableListOf<IDevice>()//多个设备
@@ -49,13 +50,24 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
         return this.devices.find { it.id == id }
     }
 
+    override fun getDevice4Ip(ip: String): Device? {
+        return this.devices.find { it.info.ip == ip }
+    }
+
     override fun getDeviceCount(): Int {
         return this.devices.size
     }
 
+    override fun getDevices(): Set<Device> {
+        return this.devices
+    }
+
     //获取启动的服务地址
     override fun getHostPort(): String {
-        return "http://$host:$port"
+        if (host == null) {
+            return ""
+        }
+        return "ws://$host:$PORT"
     }
 
     @Synchronized
@@ -72,7 +84,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
             throw Exception("获取本机IP失败")
         }
 
-        this.server = embeddedServer(Netty, port, host = "0.0.0.0") {
+        this.server = embeddedServer(Netty, PORT, host = "0.0.0.0") {
             configureSockets()
             configureRouting()
         }
@@ -80,22 +92,26 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
             this.server?.environment?.monitor?.subscribe(ApplicationStarted, this::switchStatusStart)
             this.server?.environment?.monitor?.subscribe(ApplicationStopped, this::switchStatusStop)
             this.server!!.start(wait = false)//不阻塞
+            val url = getHostPort()
+            this.listener?.updateQrCode(url)
+            this.listener?.updateServerStatus(true)
             Notifications.showInfoNotification(
                 "提示",
-                "启动服务 http://$host:$port"
+                "启动服务 $url",
             )
-
         } catch (e: Exception) {
             this.server?.environment?.monitor?.unsubscribe(ApplicationStarted, this::switchStatusStart)
             this.server?.environment?.monitor?.unsubscribe(ApplicationStopped, this::switchStatusStop)
             println(e.toString())
             if (e.toString() == "java.net.BindException: Address already in use: bind") {
-                println("端口$this.port 被占用,切换端口到 ${++this.port}")
-                this.start()
+                println("端口${this.PORT} 被占用")
+//                println("端口$this.port 被占用,切换端口到 ${++this.port}")//不做切换工作了,因为客户端没做处理
+//                this.start()
             } else {
 //                this.server?.environment?.monitor?.unsubscribe()
                 this.server = null
-                throw Exception("启动失败,端口$this.port 被占用,切换端口到 ${++this.port}")
+                println("启动服务失败 $e")
+//                throw Exception("启动失败,端口$this.port 被占用,切换端口到 ${++this.port}")
             }
         }
     }
@@ -103,6 +119,15 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
     @Synchronized
     override fun stop() {
         this.server?.stop()
+        this.devices.clear()
+        this.host = ""
+        this.listener?.updateServerStatus(false)
+        devicesUpdateUI()
+    }
+
+    //连接设备发生变化,更新设备列表UI
+    private fun devicesUpdateUI() {
+        this.listener?.updateDeviceList(this.devices)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -178,6 +203,8 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                                 hello.data.ip = ip
                                 device = Device(outgoing, hello.data)
                                 this@AutoJsServerImpl.devices += device
+                                devicesUpdateUI()
+
                                 var rspText: String
                                 if (hello.data.appVersionCode >= 629) {
                                     rspText = Json.encodeToString(
@@ -223,10 +250,9 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                     println("移除设备-> $device!")
                     if (device != null) {
                         this@AutoJsServerImpl.devices -= device
+                        devicesUpdateUI()
                     }
                 }
-
-
             }
         }
     }
@@ -268,5 +294,15 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
         this.devices.forEach {
             it.sendBytesCommand(command, md5, data)
         }
+    }
+
+    override var listener: ServerDialogListener? = null
+
+    override fun addServerDialogListener(listener: ServerDialogListener) {
+        this.listener = listener
+    }
+
+    override fun removeServerDialogListener() {
+        this.listener = null
     }
 }
