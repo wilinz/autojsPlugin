@@ -29,6 +29,12 @@
                             serviceImplementation="jb.plugin.autojs.AutoJsServerImpl"/>
         <!--   声明通知     -->
         <notificationGroup id="AutoJs Plugin" displayType="BALLOON" isLogByDefault="true"/>
+
+<!--   声明一个控制台     -->
+        <toolWindow canCloseContents="true" anchor="bottom"
+                    id="AutoJs Logcat"
+                    factoryClass="jb.plugin.autojs.MyBottomWin">
+        </toolWindow>
     </extensions>
     <!--  监听idea关闭-->
     <applicationListeners>

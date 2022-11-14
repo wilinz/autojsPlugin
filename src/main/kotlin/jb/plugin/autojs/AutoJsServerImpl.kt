@@ -9,7 +9,6 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.impl.coroutineDispatchingContext
 import com.intellij.openapi.components.*
 import com.intellij.openapi.extensions.PluginId
-import icons.AutoJsIcons
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -18,6 +17,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import jb.plugin.autojs.ui.LogListener
 import jb.plugin.autojs.ui.ServerDialogListener
 import jb.plugin.autojs.ui.Toast
 import kotlinx.coroutines.*
@@ -66,7 +66,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
 
     //获取启动的服务地址
     override fun getHostPort(): String {
-        if (host == null) {
+        if (host == null || host?.isEmpty() == true) {
             return ""
         }
         return "ws://$host:$PORT"
@@ -76,12 +76,12 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
     override fun start() {
         if (isHttpServerRunning) {
             Toast("程序已经启动在 " + this.getHostPort()).showAndGet()
-            println("程序已经启动在 " + this.getHostPort())
+            printLog("程序已经启动在 " + this.getHostPort())
             return
         }
         this.host = Utils.localIPAddress
         if (host == "null") {
-//            println("获取本机IP失败")
+//            printLog("获取本机IP失败")
             Toast("获取本机IP失败").showAndGet()
             throw Exception("获取本机IP失败")
         }
@@ -104,15 +104,15 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
         } catch (e: Exception) {
             this.server?.environment?.monitor?.unsubscribe(ApplicationStarted, this::switchStatusStart)
             this.server?.environment?.monitor?.unsubscribe(ApplicationStopped, this::switchStatusStop)
-            println(e.toString())
+            printLog(e.toString())
             if (e.toString() == "java.net.BindException: Address already in use: bind") {
-                println("端口${this.PORT} 被占用")
-//                println("端口$this.port 被占用,切换端口到 ${++this.port}")//不做切换工作了,因为客户端没做处理
+                printLog("端口${this.PORT} 被占用")
+//                printLog("端口$this.port 被占用,切换端口到 ${++this.port}")//不做切换工作了,因为客户端没做处理
 //                this.start()
             } else {
 //                this.server?.environment?.monitor?.unsubscribe()
                 this.server = null
-                println("启动服务失败 $e")
+                printLog("启动服务失败 $e")
 //                throw Exception("启动失败,端口$this.port 被占用,切换端口到 ${++this.port}")
             }
         }
@@ -136,20 +136,20 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
     @Suppress("UNUSED_PARAMETER")
     private fun switchStatusStop(ApplicationStopped: Application) {
         this.isHttpServerRunning = false
-//        println("变更程序状态" + this.isHttpServerRunning)
+//        printLog("变更程序状态" + this.isHttpServerRunning)
         updateIcon()
     }
 
     @Suppress("UNUSED_PARAMETER")
     private fun switchStatusStart(ApplicationStopped: Application) {
         this.isHttpServerRunning = true
-//        println("变更程序状态" + this.isHttpServerRunning)
+//        printLog("变更程序状态" + this.isHttpServerRunning)
         updateIcon()
     }
 
 
     override fun isRunning(): Boolean {
-//        println("程序状态" + this.isHttpServerRunning)
+//        printLog("程序状态" + this.isHttpServerRunning)
         return this.isHttpServerRunning
     }
 
@@ -167,7 +167,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                     name = folder
                 )
             )
-            DebugLog.log(device.toString() + "发送文件耗时:" + (System.currentTimeMillis() - startTimestamp) / 1000 + "秒")
+            printLog(device.toString() + "发送文件耗时:" + (System.currentTimeMillis() - startTimestamp) / 1000 + "秒")
         }
     }
 
@@ -193,13 +193,13 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
         routing {
             webSocket("/") { // websocketSession
                 val ip = this.call.mutableOriginConnectionPoint.remoteHost
-                println(ip)
+                printLog(ip)
                 var device: Device? = null
                 try {
                     for (frame in incoming) {
                         if (frame is Frame.Text) {
                             val text = frame.readText()
-//                            println("收到来自${ip}的消息:$text")
+//                            printLog("收到来自${ip}的消息:$text")
                             val parseType = Json { ignoreUnknownKeys = true }.decodeFromString<ParseType>(text)
                             if (parseType.type == "hello") {
                                 val hello = Json.decodeFromString<Req<LinkData>>(text)
@@ -229,11 +229,11 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                                         )
                                     )
                                 }
-                                println("回复设备${device.info.ip}消息:$rspText")
+                                printLog("回复设备${device.info.ip}消息:$rspText")
                                 outgoing.send(Frame.Text(rspText))
                             } else {
                                 if (device == null) {
-                                    println("设备尚未完成握手,拒绝接收消息")
+                                    printLog("设备尚未完成握手,拒绝接收消息")
                                 } else {
                                     device.onMessage(parseType.type, text)
                                 }
@@ -242,15 +242,15 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                                 close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
                             }
                         } else {
-                            println("此条数据非文本数据${frame.readBytes()}")
+                            printLog("此条数据非文本数据${frame.readBytes()}")
                         }
                     }
                 } catch (e: ClosedReceiveChannelException) {
-                    println("onClose-> ${closeReason.await()}")
+                    printLog("onClose-> ${closeReason.await()}")
                 } catch (e: Exception) {
-                    println("Exception->" + e.localizedMessage)
+                    printLog("Exception->" + e.localizedMessage)
                 } finally {
-                    println("移除设备-> $device!")
+                    printLog("移除设备-> $device!")
                     if (device != null) {
                         this@AutoJsServerImpl.devices -= device
                         GlobalScope.launch(uiDispatcher) { devicesUpdateUI() }
@@ -270,7 +270,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
     override fun appClosing() {//这个在appWillBeClosed之前执行
         super.appClosing()
         this.stop()
-        println("appClosing.")
+        printLog("appClosing.")
     }
 
     //给所有设备发送Bytes
@@ -309,6 +309,20 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
         this.listener = null
     }
 
+    override var logListener: LogListener? = null
+
+    override fun addLogListener(listener: LogListener) {
+        this.logListener = listener
+    }
+
+    override fun printLog(text: String) {
+        if (this.logListener != null) {
+            this.logListener?.appendLog(text)
+        } else {
+            Notifications.showWarningNotification("AutoJsServer发生错误,漏打印日志->", text)
+        }
+    }
+
     private val GROUP_ID = "RightKeyGroup"
     private fun registerAction() {// 动态注册右键菜单
         try {
@@ -320,7 +334,7 @@ class AutoJsServerImpl : AutoJsServer, AppLifecycleListener {
                 group.addAction(action, Constraints.LAST)
             }
         } catch (e: Throwable) {
-            println("发生错误: $e")
+            printLog("注册右键菜单失败:${e.localizedMessage}")
         }
     }
 }

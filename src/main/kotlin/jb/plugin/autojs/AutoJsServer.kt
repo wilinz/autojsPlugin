@@ -1,5 +1,6 @@
 package jb.plugin.autojs
 
+import jb.plugin.autojs.ui.LogListener
 import jb.plugin.autojs.ui.ServerDialogListener
 
 interface AutoJsServer {
@@ -42,4 +43,10 @@ interface AutoJsServer {
     //解绑更新UI的监听器
     fun removeServerDialogListener()
 
+    var logListener: LogListener?
+
+    //绑定日志监听器
+    fun addLogListener(listener: LogListener)
+
+    fun printLog(text: String)
 }

@@ -67,7 +67,7 @@ public class ServerDialog extends JDialog implements ServerDialogListener, Windo
 
     @Override
     public void updateDeviceList(Set<Device> devices) {
-        System.out.println("连接设备成功");
+        System.out.println("刷新设备展示UI");
 
         String[] cNames = {"设备", "ip", "操作", "运行"};
         Object[][] data = new Object[devices.size()][4];

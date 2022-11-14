@@ -1,5 +1,6 @@
 package jb.plugin.autojs
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.util.NlsSafe
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.SendChannel
@@ -27,6 +28,8 @@ class Device(
         val lastId = AtomicInteger(0)
     }
 
+    private val applicationService: AutoJsServer = service<AutoJsServer>()
+
     init {
         this.id = lastId.getAndIncrement()
     }
@@ -48,7 +51,7 @@ class Device(
     suspend fun send(type: String, data: Any) {
         val messageId = Utils.genMessageId()
         val message = Json.encodeToString(MessageData(messageId, type, data))
-        println("发送数据 ->$data")
+        print("发送数据 ->$data")
         this.outgoing.send(Frame.Text(message))
     }
 
@@ -65,7 +68,7 @@ class Device(
     suspend fun sendBytesCommand(command: String, md5: String, data: CommandData) {
         val messageId = Utils.genMessageId()
         data.command = command
-        println("计算出的md5 ->$md5")
+        print("计算出的md5 ->$md5")
         val message = Json.encodeToString(
             MessageData(
                 messageId,
@@ -86,7 +89,7 @@ class Device(
     }
 
     fun print(msg: String) {
-        println("📱设备${info.deviceName}-${info.ip}📱: $msg")
+        applicationService.printLog("📱设备${info.deviceName}-${info.ip}📱: $msg")
     }
 
     //读取数据,可以调用projectObserver.diff()来获取压缩文件流
@@ -118,7 +121,7 @@ class Device(
     suspend fun sendProject6Zip(byteStream: ByteArrayOutputStream, id: @NlsSafe String, name: @NlsSafe String) {
         val bs = byteStream.toByteArray()
         val md5 = Utils.computeMd5(bs)
-        println("MD5:${md5}")
+        print("MD5:${md5}")
         this.sendBytes(bs)
         this.sendBytesCommand(
             "save_project",
